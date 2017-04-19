@@ -279,6 +279,7 @@ def main():
             exec ("pin = pin%i" % i)
             if not gpio.input(pin):
                 set_hanger_color(system_sizes[i])
+                print 'Knop voor maat %s ingedrukt' % system_sizes[i]
 
 
 if __name__ == '__main__':
