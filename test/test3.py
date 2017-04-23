@@ -276,13 +276,8 @@ def knoppen(pin):
 
 
 if __name__ == '__main__':
-    # deze regels starten de demon op die voor het up-to-date houden
-    # van de barcodes en bijbehoorende maten zorgen.
-    # try:
-    #     thread.start_new_thread(knoppen, ())
-    # except thread.error:
-    #     print "kon de statistics demon niet starten."
     for pin in pins:
         gpio.add_event_detect(pin, gpio.FALLING, callback=knoppen, bouncetime=300)
-
-    statistics_demon()
+    while True:
+        print hanger_has_clothing(3)
+        print hanger_has_clothing(4)

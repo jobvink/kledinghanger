@@ -47,12 +47,15 @@ def readNumber():
 
 
 def getBarcode():
-    barcode = ""
-    for i in range(13):
-        writeNumber(i)
-        time.sleep(0.01)
-        barcode += chr(bus.read_byte(address))
-    return barcode
+    try:
+        barcode = ""
+        for i in range(13):
+            writeNumber(i)
+            time.sleep(0.01)
+            barcode += chr(bus.read_byte(address))
+        return barcode
+    except:
+        print 'read faild'
 
 def resetHanger():
     writeNumber(40)

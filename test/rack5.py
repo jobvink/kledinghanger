@@ -34,7 +34,6 @@ pins = [26, 19, 13, 6, 5]
 for pin in pins:
     gpio.setup(pin, gpio.IN, pull_up_down=gpio.PUD_UP)
 
-
 # for RPI version 1, use bus = smbus.SMBus(0)
 bus = smbus.SMBus(1)
 
@@ -63,7 +62,6 @@ sizes = {
 def statistics_demon():
     while True:
         try:
-            # rack updater
             print rack
             hangers_on_rack = get_hangers()
             for i, value in rack.iteritems():
@@ -73,56 +71,67 @@ def statistics_demon():
                         if rack[i] == barcode:
                             continue
                         else:
-                            rack[i] = barcode
-                            print 'barcode: %s gevonden op hanger %i' % (rack[i], i)
-                            data = {
-                                'rack': 1,
-                                'barcode': barcode
-                            }
-                            try:
-                                attach_response = requests.post('http://%s:%s/api/rack/attach' % (host, port), data=json.dumps(data), headers=key)
-                                print attach_response.json()['status']
-                            except requests.exceptions.ConnectionError:
-                                print 'Geen verbinding met de server'
-                            try:
-                                response = requests.get('http://%s:%s/api/products/%s' % (host, port, barcode), headers=key)
-                                try:
-                                    if response.json()['status'] == 'faild':
-                                        print '%s niet in database' % barcode
-                                        break
-                                except KeyError:
-                                    pass
-                                except ValueError:
-                                    print 'foute key'
-                                response = response.json()
-                                sizes[i] = response['size']
-                                print 'informatie gevonden over %s: ' % rack[i]
-                            except requests.ConnectionError:
-                                print 'geen verbinding met server'
-                    else:
+                            attach_barcode(i, barcode)
+                    elif hanger_has_clothing(i) == 0:
                         if rack[i] is None:
                             pass
                         else:
                             barcode = rack[i]
-                            data = {
-                                'rack': 1,
-                                'barcode': barcode
-                            }
-                            requests.post('http://%s:%s/api/rack/detach' % (host, port), data=json.dumps(data), headers=key)
-                            print '%s verwijderd van server' % barcode
+                            detach_barcode(barcode)
                             rack[i] = None
                             sizes[i] = None
                 else:
                     if value is not None:
+                        detach_barcode(rack[i])
                         rack[i] = None
                         sizes[i] = None
-
-            # deze regels zorgt ervoor dat de database up-to-date blijft
-            # update_rack_entrys()
-
-            #time.sleep(1)
+            time.sleep(1)
         except UnicodeDecodeError:
             print 'hanger verwijderd tijdens actie'
+
+
+def attach_barcode(i, barcode):
+    if barcode is None:
+        return None
+    rack[i] = barcode
+    print 'barcode: %s gevonden op hanger %i' % (rack[i], i)
+    data = {
+        'rack': 1,
+        'barcode': barcode
+    }
+    try:
+        attach_response = requests.post('http://%s:%s/api/rack/attach' % (host, port), data=json.dumps(data),
+                                        headers=key)
+        print attach_response.json()['status']
+    except requests.exceptions.ConnectionError:
+        print 'Geen verbinding met de server'
+    try:
+        response = requests.get('http://%s:%s/api/products/%s' % (host, port, barcode), headers=key)
+        try:
+            if response.json()['status'] == 'faild':
+                print '%s niet in database' % barcode
+        except KeyError:
+            pass
+        except ValueError:
+            print 'foute key'
+        response = response.json()
+        sizes[i] = response['size']
+        print 'informatie gevonden over %s: ' % rack[i]
+    except requests.ConnectionError:
+        print 'geen verbinding met server'
+
+
+def detach_barcode(barcode):
+    data = {
+        'rack': 1,
+        'barcode': barcode
+    }
+    try:
+        detach_response = requests.post('http://%s:%s/api/rack/detach' % (host, port), data=json.dumps(data),
+                                        headers=key)
+        print detach_response.json()['status']
+    except requests.exceptions.ConnectionError:
+        print 'Geen verbinding met server'
 
 
 # een demon voor test doeleinden
@@ -264,15 +273,9 @@ def set_hanger_color(size):
                 print 'hanger %i heeft maat %s' % (address, size_color[size])
 
 
-
-
-
-
-def knoppen(pin):
-    set_hanger_color(system_sizes[pins.index(pin)])
-    print 'Knop voor maat %s ingedrukt' % system_sizes[pins.index(pin)]
-
-
+def knoppen(pressed_pin):
+    set_hanger_color(system_sizes[pins.index(pressed_pin)])
+    print 'Knop voor maat %s ingedrukt' % system_sizes[pins.index(pressed_pin)]
 
 
 if __name__ == '__main__':
